@@ -84,3 +84,6 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 * **Voxel Size:** 1 x 1 x 1.3 mm
 * **Type:** int16
 ![MR Head Slices](path/to/MRHead_1.jpg)
+
+## Documentation
+* [Software Requirements Specification (SRS)](SRS.md) - Detailed functional and non-functional requirements, use cases, and system architecture.
