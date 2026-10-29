@@ -38,7 +38,7 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 * **File:** `biscuit_cake.nrrd`
 * **Dimensions:** 256 x 256 x 130
 * **Voxel Size:** 1 x 1 x 1.3 mm
-* **Type:** uint16
+* **Type:** uint 16
 ![Biscuit Cake Slices](path/to/biscuit_cake.png)
 
 ---
@@ -49,7 +49,7 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 * **File:** `swiss_roll.nrrd`
 * **Dimensions:** 256 x 256 x 130
 * **Voxel Size:** 1.1 x 1.1 x 1.43 mm
-* **Type:** uint32
+* **Type:** unit 32
 ![Swiss Roll Slices](path/to/swiss_roll.png)
 
 ---
@@ -60,7 +60,7 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 * **File:** `onion.nrrd`
 * **Dimensions:** 256 x 256 x 130
 * **Voxel Size:** 0.55 x 0.55 x 0.715 mm
-* **Type:** uint8
+* **Type:** uint 8
 ![Onion Slices](path/to/onion.png)
 
 ---
@@ -71,7 +71,7 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 * **File:** `croissant.nrrd`
 * **Dimensions:** 500 x 500 x 500
 * **Voxel Size:** 0.37 x 0.37 x 0.37 mm
-* **Type:** uint8
+* **Type:** uint 8
 ![Croissant Slices](path/to/croissant.jpg)
 
 ---
@@ -82,7 +82,7 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 * **File:** `MRHead_1.nrrd`
 * **Dimensions:** 256 x 256 x 130
 * **Voxel Size:** 1 x 1 x 1.3 mm
-* **Type:** int16
+* **Type:** unit 16
 ![MR Head Slices](path/to/MRHead_1.jpg)
 
 ## Documentation
