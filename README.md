@@ -87,3 +87,13 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 
 ## Documentation
 * [Software Requirements Specification (SRS)](SRS.md) - Detailed functional and non-functional requirements, use cases, and system architecture.
+## Experimental Results
+The projection algorithm was benchmarked on an Apple Silicon Mac across 5 different volumetric datasets. The application easily exceeded the required 30 FPS minimum (NFR-01) and the 100 FPS target (NFR-02) for the 500x500x500 matrix constraint.
+
+| Scan Name | Dimensions | Frames Generated | Performance (FPS) | Output File |
+| :--- | :--- | :--- | :--- | :--- |
+| Croissant | 500 x 500 x 500 | 150 | 1967.35 FPS |  https://github.com/user-attachments/assets/2ad93e57-3d53-4481-b7b1-e0db636fa8b2 |
+| MR Head | 256 x 256 x 130 | 130 | 5691.36 FPS |https://github.com/userattachments/assets/20653681-83bb-41d2-9af9-b12730b9d910|
+| Onion | 256 x 256 x 130 | 130 | 5541.21 FPS | https://github.com/user-attachments/assets/fba44435-9410-45bd-9a2b-74d3e5d25dec|
+| Swiss Roll | 256 x 256 x 130 | 130 | 5511.77 FPS | https://github.com/user-attachments/assets/27b450ff-a889-49b1-89b6-ebdd24ced08f|
+| Biscuit Cake | 256 x 256 x 130 | 130 | 5606.46 FPS | https://github.com/user-attachments/assets/335ec5ae-e305-4460-b2ee-729ffb46252f|
