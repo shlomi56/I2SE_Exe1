@@ -100,13 +100,21 @@ def parse_csv_planes(csv_path):
         for row_idx, row in enumerate(reader):
             if not row:
                 continue
+            # Clean empty cells (such as trailing ,,, on 3-point rows)
             cleaned = [token.strip() for token in row if token.strip() != ""]
-            if not cleaned:
+            if not cleaned or cleaned[0].startswith("#"):
                 continue
             try:
                 coords = [float(val) for val in cleaned]
             except ValueError:
+                # Skip header row
                 continue
+
+            # Course CSV format: leading column is 3 (10 values) or 4 (13 values)
+            if len(coords) == 10 and int(coords[0]) == 3:
+                coords = coords[1:]
+            elif len(coords) == 13 and int(coords[0]) == 4:
+                coords = coords[1:]
 
             if len(coords) == 9:
                 a = np.array(coords[0:3], dtype=np.float64)
@@ -122,7 +130,6 @@ def parse_csv_planes(csv_path):
             else:
                 print(f"Warning: Row {row_idx + 1} has {len(coords)} values. Skipping.")
     return planes
-
 
 def normalize_volume_to_uint8(volume):
     if volume.dtype == np.uint8:
