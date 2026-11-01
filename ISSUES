@@ -12,3 +12,5 @@ ISU - 4:  The sampling starts from 1 rather than 0
 
 ISU - 5:  Voxel scaling
           Some nrrd's have the sizes of voxels, so an adjustment is needed to get the correct scaling
+
+ISU - 6:	
