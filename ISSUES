@@ -12,7 +12,7 @@ ISU - 4:  The sampling starts from 1 rather than 0
 
 ISU - 5:  Voxel scaling
           Some nrrd's have the sizes of voxels, so an adjustment is needed to get the correct scaling if the points presented are in real space,
-	rather than in voxel coordinates directally
-	(Ideally as a run option)
+					rather than in voxel coordinates directally
+					(Ideally as a run option)
 
-ISU - 6:	
+ISU - 6:	The application does not adequately verify that the OpenCV video writer successfully initializes before attempting to write frames
