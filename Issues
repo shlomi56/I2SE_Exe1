@@ -1,0 +1,14 @@
+ISU - 1:  Non scaled sampling -> skipping voxles.
+          i.e. when sampling for a voxel, the steps aren't normlised based on the length of the edge
+
+ISU - 2:  Geometry validation
+          no check for a degenerate shape
+          (Ex - 1: shape has no vulume
+           Ex - 2: 4 points aren't on the same plane)
+
+ISU - 3:  FPS calculation only applies to the pipeline before the video
+
+ISU - 4:  The sampling starts from 1 rather than 0
+
+ISU - 5:  Voxel scaling
+          Some nrrd's have the sizes of voxels, so an adjustment is needed to get the correct scaling
