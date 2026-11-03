@@ -93,3 +93,18 @@ The projection algorithm was benchmarked on an Apple Silicon Mac across 5 differ
 | Onion | 256 x 256 x 130 | 130 | 5541.21 FPS | https://github.com/user-attachments/assets/fba44435-9410-45bd-9a2b-74d3e5d25dec|
 | Swiss Roll | 256 x 256 x 130 | 130 | 5511.77 FPS | https://github.com/user-attachments/assets/27b450ff-a889-49b1-89b6-ebdd24ced08f|
 | Biscuit Cake | 256 x 256 x 130 | 130 | 5606.46 FPS | https://github.com/user-attachments/assets/335ec5ae-e305-4460-b2ee-729ffb46252f|
+
+## Testing (`test_ex0.py`)
+
+Run the full suite of 9 automated unit and integration tests with:
+`python3 -m pytest -v`
+
+* **3-Point Plane Parsing:** Verifies isosceles triangle CSV rows (9 values) map correctly to 3D coordinate vectors.
+* **4-Point Plane Parsing:** Verifies isosceles trapezoid CSV rows (12 values) map correctly to 3D coordinate vectors.
+* **NRRD Volume Loading:** Validates that 3D `.nrrd` matrices load into memory with their original dimensions preserved.
+* **Core Projection Algorithm:** Tests 2D slice extraction and guarantees out-of-bounds coordinates safely render as black pixels.
+* **CLI Argument Validation:** Confirms `Ex0.py` enforces the 3-argument CLI format and safely exits if arguments are missing.
+* **Missing File Handling:** Verifies graceful error handling and safe exits when input `.nrrd` or `.csv` files do not exist.
+* **CSV Format & Comments:** Ensures rows with a leading point-count column (`3` or `4`) and `#` comments are parsed properly.
+* **Empty CSV Edge Case:** Verifies that CSV files with no coordinate data return an empty list safely instead of crashing.
+* **End-to-End MP4 Generation:** Runs the complete CLI pipeline on a synthetic volume to prove OpenCV generates a valid `.mp4` video.
