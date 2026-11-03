@@ -39,7 +39,6 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 * **Dimensions:** 256 x 256 x 130
 * **Voxel Size:** 1 x 1 x 1.3 mm
 * **Type:** uint16
-![Biscuit Cake Slices](path/to/biscuit_cake.png)
 
 ---
 
@@ -50,7 +49,6 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 * **Dimensions:** 256 x 256 x 130
 * **Voxel Size:** 1.1 x 1.1 x 1.43 mm
 * **Type:** unit32
-![Swiss Roll Slices](path/to/swiss_roll.png)
 
 ---
 
@@ -61,18 +59,17 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 * **Dimensions:** 256 x 256 x 130
 * **Voxel Size:** 0.55 x 0.55 x 0.715 mm
 * **Type:** uint8
-![Onion Slices](path/to/onion.png)
 
 ---
 
 ### 4. Croissant
 <img width="1760" height="506" alt="croissant" src="https://github.com/user-attachments/assets/08b385c4-4884-4404-aa80-3c9c6d57a0a0" />
 
+
 * **File:** `croissant.nrrd`
 * **Dimensions:** 500 x 500 x 500
 * **Voxel Size:** 0.37 x 0.37 x 0.37 mm
 * **Type:** uint8
-![Croissant Slices](path/to/croissant.jpg)
 
 ---
 
@@ -83,7 +80,6 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 * **Dimensions:** 256 x 256 x 130
 * **Voxel Size:** 1 x 1 x 1.3 mm
 * **Type:** unit16
-![MR Head Slices](path/to/MRHead_1.jpg)
 
 ## Documentation
 * [Software Requirements Specification (SRS)](SRS.md) - Detailed functional and non-functional requirements, use cases, and system architecture.
