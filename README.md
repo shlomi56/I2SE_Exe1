@@ -4,7 +4,7 @@ Algorithm: Implementing a plane projection of 3D volume
 This repository contains the implementation of a 3D-to-2D projection algorithm. The system is built as a command-line interface (CLI) tool that reads a 3D raster data matrix from an `.nrrd` file, processes a series of geometric cutting planes defined in a `.csv` file, and outputs a sequential 2D projection as an `.mp4` video file. 
 
 ## Problem Statement
-Given a 3D raster data matrix (M), and a plane (p). Compute the 2D matrix (image) of the projection of p in V *(note: this problem is NOT well-defined for implementation - a detailed design is needed)*.
+Given a 3D raster data matrix (M), and a plane (p). Compute the 2D matrix (image) of the projection of p in V.
 
 ## Problem Definition
 Given a 3D matrix (M) of size sx*sy*sz byte values (the entry M[x][y][z] is an unsigned integer value of 8, 16, 32 bits), where 1<=sx,sy,sz<2^10 and 0<=x<sx, 0<=y<sy, 0<=z<sz.
@@ -17,8 +17,9 @@ Out-of-bounds sampling: If a calculated point on the plane falls outside the bou
 * **Stability:** The code must be correct and stable, properly handling file parsing, coordinate calculations, and out-of-bounds matrix indexing.
 * **Performance / Runtime:** Code efficiency is highly prioritized due to the scale of the matrices. 
   * Given a matrix of size 500^3 bytes, a runtime of **at least 30 FPS is a must**.
-  * A runtime of **at least 100 FPS is expected**. 
-  *(To achieve these performance targets in Python, numerical compilation tools such as Numba/JIT are highly recommended).*
+  *A runtime of **at least 100 FPS is expected**.
+  (On an M2 Mac 2013).
+  
 
 ## Usage & Execution
 The application is executed strictly via the command line with exactly three arguments:
@@ -83,8 +84,9 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 
 ## Documentation
 * [Software Requirements Specification (SRS)](SRS.md) - Detailed functional and non-functional requirements, use cases, and system architecture.
+
 ## Experimental Results
-The projection algorithm was benchmarked on an Apple Silicon Mac across 5 different volumetric datasets. The application easily exceeded the required 30 FPS minimum (NFR-01) and the 100 FPS target (NFR-02) for the 500x500x500 matrix constraint.
+The projection algorithm was benchmarked on an Apple Silicon M2 MacBook Pro across 5 different volumetric datasets. The application easily exceeded the required 30 FPS minimum (NFR-01) and the 100 FPS target (NFR-02) for the 500x500x500 matrix constraint.
 
 | Scan Name | Dimensions | Frames Generated | Performance (FPS) | Output File |
 | :--- | :--- | :--- | :--- | :--- |
@@ -93,18 +95,3 @@ The projection algorithm was benchmarked on an Apple Silicon Mac across 5 differ
 | Onion | 256 x 256 x 130 | 130 | 5541.21 FPS | https://github.com/user-attachments/assets/fba44435-9410-45bd-9a2b-74d3e5d25dec|
 | Swiss Roll | 256 x 256 x 130 | 130 | 5511.77 FPS | https://github.com/user-attachments/assets/27b450ff-a889-49b1-89b6-ebdd24ced08f|
 | Biscuit Cake | 256 x 256 x 130 | 130 | 5606.46 FPS | https://github.com/user-attachments/assets/335ec5ae-e305-4460-b2ee-729ffb46252f|
-
-## Testing (`test_ex0.py`)
-
-Run the full suite of 9 automated unit and integration tests with:
-`python3 -m pytest -v`
-
-* **3-Point Plane Parsing:** Verifies isosceles triangle CSV rows (9 values) map correctly to 3D coordinate vectors.
-* **4-Point Plane Parsing:** Verifies isosceles trapezoid CSV rows (12 values) map correctly to 3D coordinate vectors.
-* **NRRD Volume Loading:** Validates that 3D `.nrrd` matrices load into memory with their original dimensions preserved.
-* **Core Projection Algorithm:** Tests 2D slice extraction and guarantees out-of-bounds coordinates safely render as black pixels.
-* **CLI Argument Validation:** Confirms `Ex0.py` enforces the 3-argument CLI format and safely exits if arguments are missing.
-* **Missing File Handling:** Verifies graceful error handling and safe exits when input `.nrrd` or `.csv` files do not exist.
-* **CSV Format & Comments:** Ensures rows with a leading point-count column (`3` or `4`) and `#` comments are parsed properly.
-* **Empty CSV Edge Case:** Verifies that CSV files with no coordinate data return an empty list safely instead of crashing.
-* **End-to-End MP4 Generation:** Runs the complete CLI pipeline on a synthetic volume to prove OpenCV generates a valid `.mp4` video.
