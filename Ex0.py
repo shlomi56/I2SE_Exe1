@@ -85,12 +85,31 @@ def project_plane_kernel(volume, a1_init, a2_init, b, c):
     return E
 
 
-def validate_plane_geometry(a1, a2, b, c, eps=0.001):
+def validate_plane_geometry(a1, a2, b, c, eps=1e-5):
+    """Validates plane geometry and returns (is_valid, error_message)."""
+    # Exception 1: Coincident Points (Zero distance / Division by zero risk)
+    if np.linalg.norm(b - a1) < eps or np.linalg.norm(c - a2) < eps:
+        return False, "Coincident points detected (distance is zero)."
+        
+    # Exception 2: Collinear Points (Forms a 1D line, zero area)
+    cross_prod = np.cross(b - a1, c - a1)
+    if np.linalg.norm(cross_prod) < eps:
+        return False, "Collinear points detected (forms a 1D line instead of a 2D plane)."
+        
+    # Exception 3: Non-Coplanar Points (Warped 4-point surface)
+    if not np.allclose(a1, a2, atol=eps): 
+        # The scalar triple product computes the 3D volume. If > 0, it's warped.
+        volume = np.dot(a2 - a1, cross_prod)
+        if abs(volume) > eps:
+            return False, "Non-coplanar points detected (4 points form a warped 3D shape)."
+            
+    # Exception 4: Original isosceles shape constraint
     dab = np.linalg.norm(b - a1)
     dac = np.linalg.norm(c - a2)
-    da1a2 = np.linalg.norm(a2 - a1)
-    dbc = np.linalg.norm(c - b)
-    return (abs(dab - dac) < eps) and (da1a2 <= dbc + eps)
+    if abs(dab - dac) > 0.01:
+        return False, "Shape is not isosceles (sides are unequal lengths)."
+        
+    return True, "Valid"
 
 
 def parse_csv_planes(csv_path):
