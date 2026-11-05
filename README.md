@@ -56,7 +56,7 @@ python3 -m pytest -v
 ### 6. Run the Application
 
 ```bash
-python3 Ex0.py <path_to_input.nrrd> <path_to_input.csv> <path_to_output.mp4>
+python3 Ex0.py <data/path_to_input.nrrd> <data/path_to_input.csv> <path_to_output.mp4>
 ```
 ### 7. Build the Executable (Optional)
 **What this does:** Uses PyInstaller via the `build_project.py` script to bundle the Python code and all of its dependencies into a single, standalone binary application. This allows the program to be run on machines that do not have Python installed.
