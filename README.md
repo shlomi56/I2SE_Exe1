@@ -21,11 +21,50 @@ Out-of-bounds sampling: If a calculated point on the plane falls outside the bou
   (On an M2 Mac 2013).
   
 
-## Usage & Execution
-The application is executed strictly via the command line with exactly three arguments:
+## Setup & Execution Guide
 
-```bash 
-python Ex0.py file.nrrd file.csv file.mp4.
+### 1. Prerequisites
+Ensure the target machine has:
+* **Python 3.9+** installed (`python3 --version`).
+* **Git** installed (`git --version`).
+* System C/C++ compiler tools (required by Numba/LLVM depending on the OS).
+
+### 2. Clone the Repository
+Open a terminal (macOS/Linux) or Command Prompt/PowerShell (Windows) and clone the repository:
+```bash
+git clone [https://github.com/shlomi56/I2SE_Exe1.git](https://github.com/shlomi56/I2SE_Exe1.git)
+cd I2SE_Exe1
+```
+### 3. Set Up a Virtual Environment (Recommended)
+
+**macOS / Linux:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+### 4. Install Dependencies
+
+```bash
+pip install --upgrade pip
+pip install numpy pynrrd opencv-python numba pytest
+```
+### 5. Run the Automated Test Suite
+
+```bash
+python3 -m pytest -v
+```
+### 6. Run the Application
+
+```bash
+python3 Ex0.py <path_to_input.nrrd> <path_to_input.csv> <path_to_output.mp4>
+```
+### 7. Build the Executable (Optional)
+**What this does:** Uses PyInstaller via the `build_project.py` script to bundle the Python code and all of its dependencies into a single, standalone binary application. This allows the program to be run on machines that do not have Python installed.
+
+```bash
+pip install pyinstaller
+python3 build_project.py
+
 ```
 ## Dataset Overview
 
@@ -86,7 +125,7 @@ This repository contains various 3D volumetric datasets (stored in NRRD format).
 * [Software Requirements Specification (SRS)](SRS.md) - Detailed functional and non-functional requirements, use cases, and system architecture.
 
 ## Experimental Results
-The projection algorithm was benchmarked on an Apple Silicon M2 MacBook Pro across 5 different volumetric datasets. The application easily exceeded the required 30 FPS minimum (NFR-01) and the 100 FPS target (NFR-02) for the 500x500x500 matrix constraint.
+The projection algorithm was benchmarked on an Apple Silicon M4 MacBook Pro across 5 different volumetric datasets. The application easily exceeded the required 30 FPS minimum (NFR-01) and the 100 FPS target (NFR-02) for the 500x500x500 matrix constraint.
 
 | Scan Name | Dimensions | Frames Generated | Performance (FPS) | Output File |
 | :--- | :--- | :--- | :--- | :--- |
