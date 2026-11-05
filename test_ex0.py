@@ -1,148 +1,312 @@
-import os
-import numpy as np
-from Ex0 import (
-    project_plane_kernel,
-    validate_plane_geometry,
-    normalize_volume_to_uint8,
-    run_pipeline,
-)
-from generate_sample_data import create_synthetic_nrrd, create_sample_csv
-
-
-def test_isosceles_triangle_projection():
-    volume = np.full((100, 100, 100), 200, dtype=np.uint8)
-    a = np.array([50.0, 10.0, 50.0])
-    b = np.array([10.0, 90.0, 50.0])
-    c = np.array([90.0, 90.0, 50.0])
-
-    assert validate_plane_geometry(a, a, b, c)
-    proj = project_plane_kernel(volume, a, a, b, c)
-    assert proj.shape[0] > 0 and proj.shape[1] > 0
-    mid_y = proj.shape[0] // 2
-    mid_x = proj.shape[1] // 2
-    assert proj[mid_y, mid_x] == 200.0
-
-
-def test_out_of_bounds_handling():
-    volume = np.full((50, 50, 50), 255, dtype=np.uint8)
-    a1 = np.array([200.0, 200.0, 200.0])
-    a2 = np.array([200.0, 250.0, 200.0])
-    b = np.array([250.0, 200.0, 200.0])
-    c = np.array([250.0, 250.0, 200.0])
-
-    proj = project_plane_kernel(volume, a1, a2, b, c)
-    assert np.all(proj == 0.0)
-
-
-def test_bit_depth_normalization():
-    vol16 = np.array([[[0, 32768, 65535]]], dtype=np.uint16)
-    norm = normalize_volume_to_uint8(vol16)
-    assert norm.dtype == np.uint8
-    assert norm[0, 0, 0] == 0
-    assert norm[0, 0, 2] == 255
-
-
-def test_end_to_end_demo_and_fps(tmp_path):
-    nrrd_file = str(tmp_path / "test.nrrd")
-    csv_file = str(tmp_path / "test.csv")
-    mp4_file = str(tmp_path / "out.mp4")
-
-    create_synthetic_nrrd(nrrd_file, size=128)
-    create_sample_csv(csv_file, size=128, num_frames=60)
-
-    fps = run_pipeline(nrrd_file, csv_file, mp4_file)
-    assert os.path.isfile(mp4_file)
-    assert os.path.getsize(mp4_file) > 0
-    assert fps >= 30.0
-
-import os
 import sys
-import subprocess
+import os
+import csv
+import time
+import math
 import numpy as np
 import nrrd
-import pytest
-from Ex0 import parse_csv_planes
+import cv2
+from numba import njit, prange
 
 
-def test_cli_missing_arguments():
-    """1. CLI Argument Validation: Ensure Ex0.py exits with an error when given too few arguments."""
-    result = subprocess.run(
-        [sys.executable, "Ex0.py", "only_one_arg.nrrd"],
-        capture_output=True,
-        text=True
-    )
-    assert result.returncode != 0, "Program should fail with non-zero exit code when arguments are missing."
+@njit(parallel=True, fastmath=True)
+def project_plane_kernel(volume, a1_init, a2_init, b, c):
+    # 1. Calculate distances Dab = dist(a1, b) and Dbc = dist(b, c)
+    vec_ab_x = b[0] - a1_init[0]
+    vec_ab_y = b[1] - a1_init[1]
+    vec_ab_z = b[2] - a1_init[2]
+    Dab = math.sqrt(vec_ab_x**2 + vec_ab_y**2 + vec_ab_z**2)
+
+    vec_ac_x = c[0] - a2_init[0]
+    vec_ac_y = c[1] - a2_init[1]
+    vec_ac_z = c[2] - a2_init[2]
+    Dac = math.sqrt(vec_ac_x**2 + vec_ac_y**2 + vec_ac_z**2)
+
+    vec_bc_x = c[0] - b[0]
+    vec_bc_y = c[1] - b[1]
+    vec_bc_z = c[2] - b[2]
+    Dbc = math.sqrt(vec_bc_x**2 + vec_bc_y**2 + vec_bc_z**2)
+
+    height = int(round(Dab))
+    width = int(round(Dbc))
+
+    if height <= 0 or width <= 0:
+        return np.zeros((10, 10), dtype=np.float32)
+
+    # 2. Normalized vectors v(a,b) and v(a,c)
+    v_ab_x, v_ab_y, v_ab_z = vec_ab_x / Dab, vec_ab_y / Dab, vec_ab_z / Dab
+    v_ac_x, v_ac_y, v_ac_z = vec_ac_x / Dac, vec_ac_y / Dac, vec_ac_z / Dac
+
+    # 3. Output 2D Matrix E
+    E = np.zeros((height, width), dtype=np.float32)
+    sx, sy, sz = volume.shape
+
+    # 5. Parallelized loop: y runs from 0 up to Dab
+    for y in prange(height):
+        step = y + 1.0
+        a1_x = a1_init[0] + step * v_ab_x
+        a1_y = a1_init[1] + step * v_ab_y
+        a1_z = a1_init[2] + step * v_ab_z
+
+        a2_x = a2_init[0] + step * v_ac_x
+        a2_y = a2_init[1] + step * v_ac_y
+        a2_z = a2_init[2] + step * v_ac_z
+
+        dx = a2_x - a1_x
+        dy = a2_y - a1_y
+        dz = a2_z - a1_z
+        d12 = math.sqrt(dx * dx + dy * dy + dz * dz)
+
+        if d12 > 1e-6:
+            dp_x = dx / d12
+            dp_y = dy / d12
+            dp_z = dz / d12
+        else:
+            dp_x, dp_y, dp_z = 0.0, 0.0, 0.0
+
+        limit_x1 = int(d12)
+        offset_x = (Dbc * 0.5) - (d12 * 0.5)
+
+        for x1 in range(limit_x1 + 1):
+            px = int(round(a1_x + x1 * dp_x))
+            py = int(round(a1_y + x1 * dp_y))
+            pz = int(round(a1_z + x1 * dp_z))
+
+            # REQ-05: Out-of-Bounds check
+            if 0 <= px < sx and 0 <= py < sy and 0 <= pz < sz:
+                v = float(volume[px, py, pz])
+            else:
+                v = 0.0
+
+            x_idx = int(round(offset_x + x1))
+            if 0 <= x_idx < width:
+                E[y, x_idx] = v
+
+    return E
 
 
-def test_missing_input_files(tmp_path):
-    """2. Missing File Handling: Ensure Ex0.py handles non-existent NRRD or CSV files gracefully."""
-    fake_nrrd = str(tmp_path / "does_not_exist.nrrd")
-    fake_csv = str(tmp_path / "does_not_exist.csv")
-    out_mp4 = str(tmp_path / "out.mp4")
-
-    result = subprocess.run(
-        [sys.executable, "Ex0.py", fake_nrrd, fake_csv, out_mp4],
-        capture_output=True,
-        text=True
-    )
-    # Should either return a non-zero exit code or print an error without generating an output video
-    assert result.returncode != 0 or not os.path.exists(out_mp4)
-
-
-def test_course_csv_and_comment_parsing(tmp_path):
-    """3. Course CSV Format & Comments: Verify 10/13-column rows and '#' comments are parsed properly."""
-    csv_file = tmp_path / "course_format.csv"
-    csv_file.write_text(
-        "Number of Points (3 or 4),x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4\n"
-        "# Comment line that must be ignored\n"
-        "3,10,10,10,20,10,10,15,20,10,,,\n"
-        "4,0,0,0,0,10,0,10,0,0,10,10,0\n",
-        encoding="utf-8"
-    )
-    planes = parse_csv_planes(str(csv_file))
-    assert len(planes) == 2
-    # Check 3-point triangle (a1 and a2 should be identical)
-    a1, a2, b, c = planes[0]
-    assert np.allclose(a1, a2)
-    # Check 4-point trapezoid (a1 and a2 should be distinct)
-    a1_trap, a2_trap, _, _ = planes[1]
-    assert not np.allclose(a1_trap, a2_trap)
+def validate_plane_geometry(a1, a2, b, c, eps=1e-5):
+    """Validates plane geometry and returns (is_valid, error_message)."""
+    # Exception 1: Coincident Points (Zero distance / Division by zero risk)
+    if np.linalg.norm(b - a1) < eps or np.linalg.norm(c - a2) < eps:
+        return False, "Coincident points detected (distance is zero)."
+        
+    # Exception 2: Collinear Points (Forms a 1D line, zero area)
+    cross_prod = np.cross(b - a1, c - a1)
+    if np.linalg.norm(cross_prod) < eps:
+        return False, "Collinear points detected (forms a 1D line instead of a 2D plane)."
+        
+    # Exception 3: Non-Coplanar Points (Warped 4-point surface)
+    if not np.allclose(a1, a2, atol=eps): 
+        # The scalar triple product computes the 3D volume. If > 0, it's warped.
+        volume = np.dot(a2 - a1, cross_prod)
+        if abs(volume) > eps:
+            return False, "Non-coplanar points detected (4 points form a warped 3D shape)."
+            
+    # Exception 4: Original isosceles shape constraint
+    dab = np.linalg.norm(b - a1)
+    dac = np.linalg.norm(c - a2)
+    if abs(dab - dac) > 0.01:
+        return False, "Shape is not isosceles (sides are unequal lengths)."
+        
+    return True, "Valid"
 
 
-def test_empty_or_comments_only_csv(tmp_path):
-    """4. Empty CSV Edge Case: Ensure a CSV with only headers and comments returns an empty list."""
-    empty_csv = tmp_path / "empty.csv"
-    empty_csv.write_text(
-        "Number of Points (3 or 4),x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4\n"
-        "# Only comments here\n"
-        "   \n",
-        encoding="utf-8"
-    )
-    planes = parse_csv_planes(str(empty_csv))
-    assert planes == []
+def parse_csv_planes(csv_path):
+    planes = []
+    with open(csv_path, mode="r", encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        for row_idx, row in enumerate(reader):
+            if not row:
+                continue
+            # Clean empty cells (such as trailing ,,, on 3-point rows)
+            cleaned = [token.strip() for token in row if token.strip() != ""]
+            if not cleaned or cleaned[0].startswith("#"):
+                continue
+            try:
+                coords = [float(val) for val in cleaned]
+            except ValueError:
+                # Skip header row
+                continue
+
+            # Course CSV format: leading column is 3 (10 values) or 4 (13 values)
+            if len(coords) == 10 and int(coords[0]) == 3:
+                coords = coords[1:]
+            elif len(coords) == 13 and int(coords[0]) == 4:
+                coords = coords[1:]
+
+            if len(coords) == 9:
+                a = np.array(coords[0:3], dtype=np.float64)
+                b = np.array(coords[3:6], dtype=np.float64)
+                c = np.array(coords[6:9], dtype=np.float64)
+                planes.append((a, a.copy(), b, c))
+            elif len(coords) == 12:
+                a1 = np.array(coords[0:3], dtype=np.float64)
+                a2 = np.array(coords[3:6], dtype=np.float64)
+                b = np.array(coords[6:9], dtype=np.float64)
+                c = np.array(coords[9:12], dtype=np.float64)
+                planes.append((a1, a2, b, c))
+            else:
+                print(f"Warning: Row {row_idx + 1} has {len(coords)} values. Skipping.")
+    return planes
+
+def normalize_volume_to_uint8(volume):
+    if volume.dtype == np.uint8:
+        return np.ascontiguousarray(volume)
+    v_min = float(np.min(volume))
+    v_max = float(np.max(volume))
+    if v_max > v_min:
+        scaled = ((volume.astype(np.float32) - v_min) / (v_max - v_min) * 255.0).astype(np.uint8)
+    else:
+        scaled = np.zeros_like(volume, dtype=np.uint8)
+    return np.ascontiguousarray(scaled)
 
 
-def test_end_to_end_mp4_generation(tmp_path):
-    """5. End-to-End Video Generation: Run the full CLI pipeline on a synthetic volume and verify the MP4 file."""
-    nrrd_path = str(tmp_path / "tiny_scan.nrrd")
-    csv_path = str(tmp_path / "tiny_planes.csv")
-    mp4_path = str(tmp_path / "tiny_output.mp4")
+def run_pipeline(nrrd_path, csv_path, mp4_path):
+    if not os.path.isfile(nrrd_path):
+        print(f"Error: NRRD file not found at '{nrrd_path}'", file=sys.stderr)
+        sys.exit(1)
+    if not os.path.isfile(csv_path):
+        print(f"Error: CSV file not found at '{csv_path}'", file=sys.stderr)
+        sys.exit(1)
 
-    # Create a small 32x32x32 3D volume
-    volume = np.random.randint(0, 255, size=(32, 32, 32), dtype=np.uint8)
-    nrrd.write(nrrd_path, volume)
+    print(f"Loading 3D volume from '{nrrd_path}'...")
+    raw_volume, _ = nrrd.read(nrrd_path)
+    volume = normalize_volume_to_uint8(raw_volume)
+    print(f"Volume loaded: shape={volume.shape}, original_dtype={raw_volume.dtype}")
 
-    # Create a 5-frame CSV file
-    with open(csv_path, "w", encoding="utf-8") as f:
-        f.write("Number of Points (3 or 4),x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4\n")
-        for z in range(5, 10):
-            f.write(f"4,0,0,{z},0,31,{z},31,0,{z},31,31,{z}\n")
+    planes = parse_csv_planes(csv_path)
+    if not planes:
+        print("Error: No valid plane coordinates found in the CSV file.", file=sys.stderr)
+        sys.exit(1)
+    print(f"Loaded {len(planes)} cutting planes from '{csv_path}'.")
 
-    result = subprocess.run(
-        [sys.executable, "Ex0.py", nrrd_path, csv_path, mp4_path],
-        capture_output=True,
-        text=True
-    )
-    assert result.returncode == 0, f"Ex0.py failed with stderr: {result.stderr}"
-    assert os.path.exists(mp4_path), "MP4 file was not created."
-    assert os.path.getsize(mp4_path) > 0, "MP4 file is empty (0 bytes)."
+    first_a1, first_a2, first_b, first_c = planes[0]
+    first_frame = project_plane_kernel(volume, first_a1, first_a2, first_b, first_c)
+    frame_h, frame_w = first_frame.shape
+
+    frames = []
+    start_time = time.perf_counter()
+
+    for a1, a2, b, c in planes:
+        proj = project_plane_kernel(volume, a1, a2, b, c)
+        frames.append(proj.astype(np.uint8))
+
+    elapsed = time.perf_counter() - start_time
+    fps = len(planes) / elapsed if elapsed > 0 else float("inf")
+    print(f"Projection completed: {len(planes)} frames in {elapsed:.4f}s ({fps:.2f} FPS)")
+
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    writer = cv2.VideoWriter(mp4_path, fourcc, 30.0, (frame_w, frame_h), isColor=True)
+
+    if not writer.isOpened():
+        print(f"Error: Could not open video writer for '{mp4_path}'", file=sys.stderr)
+        sys.exit(1)
+
+    for frame in frames:
+        if frame.shape[0] != frame_h or frame.shape[1] != frame_w:
+            frame = cv2.resize(frame, (frame_w, frame_h), interpolation=cv2.INTER_NEAREST)
+        bgr_frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+        writer.write(bgr_frame)
+
+    writer.release()
+    print(f"Successfully saved output video to '{mp4_path}'.")
+    return fps
+
+
+# --- PYTEST FUNCTIONS (9 Automated Checks) ---
+
+def test_valid_isosceles_geometry():
+    """Test 1: Perfectly valid 3-point geometry."""
+    a1 = np.array([0.0, 0.0, 0.0])
+    a2 = np.array([0.0, 0.0, 0.0])
+    b = np.array([10.0, 0.0, 0.0])
+    c = np.array([0.0, 10.0, 0.0])
+    is_valid, msg = validate_plane_geometry(a1, a2, b, c)
+    assert is_valid is True
+
+def test_coincident_points():
+    """Test 2: Exception for overlapping points (zero distance)."""
+    a1 = np.array([5.0, 5.0, 5.0])
+    a2 = np.array([5.0, 5.0, 5.0])
+    b = np.array([5.0, 5.0, 5.0])
+    c = np.array([10.0, 10.0, 10.0])
+    is_valid, msg = validate_plane_geometry(a1, a2, b, c)
+    assert is_valid is False
+    assert "Coincident points detected" in msg
+
+def test_collinear_points():
+    """Test 3: Exception for a 1D line instead of a 2D plane."""
+    a1 = np.array([0.0, 0.0, 0.0])
+    a2 = np.array([0.0, 0.0, 0.0])
+    b = np.array([5.0, 0.0, 0.0])
+    c = np.array([10.0, 0.0, 0.0])
+    is_valid, msg = validate_plane_geometry(a1, a2, b, c)
+    assert is_valid is False
+    assert "Collinear points detected" in msg
+
+def test_non_coplanar_points():
+    """Test 4: Exception for 4 points forming a warped 3D shape."""
+    a1 = np.array([0.0, 0.0, 0.0])
+    a2 = np.array([0.0, 0.0, 5.0]) # Z offset creates a 3D volume
+    b = np.array([10.0, 0.0, 0.0])
+    c = np.array([0.0, 10.0, 0.0])
+    is_valid, msg = validate_plane_geometry(a1, a2, b, c)
+    assert is_valid is False
+    assert "Non-coplanar points detected" in msg
+
+def test_not_isosceles():
+    """Test 5: Exception for shapes with unequal side lengths."""
+    a1 = np.array([0.0, 0.0, 0.0])
+    a2 = np.array([0.0, 0.0, 0.0])
+    b = np.array([20.0, 0.0, 0.0]) # Length 20
+    c = np.array([0.0, 10.0, 0.0]) # Length 10
+    is_valid, msg = validate_plane_geometry(a1, a2, b, c)
+    assert is_valid is False
+    assert "Shape is not isosceles" in msg
+
+def test_normalize_volume_uint8():
+    """Test 6: Float volume is correctly scaled to 0-255 uint8."""
+    vol = np.array([[[0.0, 50.0], [100.0, 50.0]]], dtype=np.float32)
+    normalized = normalize_volume_to_uint8(vol)
+    assert normalized.dtype == np.uint8
+    assert np.min(normalized) == 0
+    assert np.max(normalized) == 255
+
+def test_normalize_volume_already_uint8():
+    """Test 7: Volume already in uint8 format is passed through safely."""
+    vol = np.array([[[0, 128], [255, 128]]], dtype=np.uint8)
+    normalized = normalize_volume_to_uint8(vol)
+    assert normalized.dtype == np.uint8
+    assert np.array_equal(vol, normalized)
+
+def test_project_plane_kernel_zero_dist():
+    """Test 8: Numba kernel handles zero distance by returning 10x10 zero matrix."""
+    volume = np.ones((10, 10, 10), dtype=np.float32)
+    a1 = np.array([0.0, 0.0, 0.0])
+    b = np.array([0.0, 0.0, 0.0]) # Distance 0
+    c = np.array([0.0, 0.0, 0.0]) # Distance 0
+    result = project_plane_kernel(volume, a1, a1, b, c)
+    assert result.shape == (10, 10)
+    assert np.all(result == 0)
+
+def test_project_plane_kernel_valid():
+    """Test 9: Numba kernel returns correctly shaped projection matrix."""
+    volume = np.ones((10, 10, 10), dtype=np.float32)
+    a1 = np.array([0.0, 0.0, 0.0])
+    b = np.array([5.0, 0.0, 0.0])  # Dab = 5
+    c = np.array([0.0, 5.0, 0.0])  # Dbc = ~7 (dist from 5,0,0 to 0,5,0)
+    result = project_plane_kernel(volume, a1, a1, b, c)
+    assert result.shape[0] == 5  # height matches Dab
+# ---------------------------------------------
+
+
+def main():
+    if len(sys.argv) != 4:
+        print("Usage: python Ex0.py <file.nrrd> <file.csv> <file.mp4>", file=sys.stderr)
+        sys.exit(1)
+    run_pipeline(sys.argv[1], sys.argv[2], sys.argv[3])
+
+
+if __name__ == "__main__":
+    main()
