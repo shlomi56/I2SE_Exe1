@@ -149,3 +149,4 @@ Run the full suite of 9 automated unit and integration tests with:
 * **CSV Format & Comments:** Ensures rows with a leading point-count column (`3` or `4`) and `#` comments are parsed properly.
 * **Empty CSV Edge Case:** Verifies that CSV files with no coordinate data return an empty list safely instead of crashing.
 * **End-to-End MP4 Generation:** Runs the complete CLI pipeline on a synthetic volume to prove OpenCV generates a valid `.mp4` video.
+* **`test_ex0_generalized.py`** in addition 124 more generalized tests to the functions themselves.
