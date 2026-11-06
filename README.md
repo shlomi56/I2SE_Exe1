@@ -32,7 +32,7 @@ Ensure the target machine has:
 ### 2. Clone the Repository
 Open a terminal (macOS/Linux) or Command Prompt/PowerShell (Windows) and clone the repository:
 ```bash
-git clone [https://github.com/shlomi56/I2SE_Exe1.git](https://github.com/shlomi56/I2SE_Exe1.git)
+git clone https://github.com/shlomi56/I2SE_Exe1.git
 cd I2SE_Exe1
 ```
 ### 3. Set Up a Virtual Environment (Recommended)
@@ -51,7 +51,7 @@ pip install numpy pynrrd opencv-python numba pytest
 ### 5. Run the Automated Test Suite
 
 ```bash
-python3 -m pytest -v
+python3 -m pytest test_ex0.py test_ex0_generalized.py -v
 ```
 ### 6. Run the Application
 
@@ -135,7 +135,7 @@ The projection algorithm was benchmarked on an Apple Silicon M4 MacBook Pro acro
 | Swiss Roll | 256 x 256 x 130 | 130 | 5511.77 FPS | https://github.com/user-attachments/assets/27b450ff-a889-49b1-89b6-ebdd24ced08f|
 | Biscuit Cake | 256 x 256 x 130 | 130 | 5606.46 FPS | https://github.com/user-attachments/assets/335ec5ae-e305-4460-b2ee-729ffb46252f|
 
-## Testing (`test_ex0.py`)
+## Testing (`test_ex0.py` & `test_ex0_generalized.py`)
 
 Run the full suite of 9 automated unit and integration tests with:
 `python3 -m pytest -v`
