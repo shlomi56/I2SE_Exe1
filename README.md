@@ -135,6 +135,9 @@ The projection algorithm was benchmarked on an Apple Silicon M4 MacBook Pro acro
 | Swiss Roll | 256 x 256 x 130 | 130 | 5511.77 FPS | https://github.com/user-attachments/assets/27b450ff-a889-49b1-89b6-ebdd24ced08f|
 | Biscuit Cake | 256 x 256 x 130 | 130 | 5606.46 FPS | https://github.com/user-attachments/assets/335ec5ae-e305-4460-b2ee-729ffb46252f|
 
+<img width="458" height="354" alt="All_NRRD_runtime" src="https://github.com/user-attachments/assets/c65fa4c4-6453-41f3-9736-681eed5e399e" />
+
+
 ## Testing (`test_ex0.py` & `test_ex0_generalized.py`)
 
 Run the full suite of 9 automated unit and integration tests with:
